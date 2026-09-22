@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 CS2 职业选手 TOP20 概率</title>
+<style>
+  :root {
+    --bg: #0b0b0d;
+    --surface: #141417;
+    --surface-2: #1b1b20;
+    --ink: #f2f2f4;
+    --ink-2: #a6a6af;
+    --muted: #7a7a84;
+    --grid: #26262c;
+    --baseline: #3a3a42;
+    --border: rgba(255,255,255,0.08);
+    --accent: #ff9d3c;
+    --accent-2: #f07f28;
+    --track: #232329;
+    --tier-S: #ff9d3c;
+    --tier-A: #f07f28;
+    --tier-B: #d4681f;
+    --tier-C: #ad541c;
+    --tier-D: #7f421a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: radial-gradient(1200px 500px at 50% -10%, #1d1a16 0%, var(--bg) 55%) fixed, var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap { max-width: 920px; margin: 0 auto; padding: 44px 20px 90px; }
+
+  /* header */
+  header { margin-bottom: 26px; }
+  .kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 700; letter-spacing: .14em;
+    color: var(--accent); text-transform: uppercase; margin: 0 0 12px;
+  }
+  .kicker::before { content:""; width: 22px; height: 2px; background: var(--accent); border-radius: 1px; }
+  h1 { font-size: 32px; margin: 0 0 10px; font-weight: 800; letter-spacing: -.01em; }
+  .subtitle { color: var(--ink-2); font-size: 15px; margin: 0; max-width: 66ch; }
+  .subtitle b { color: var(--ink); font-weight: 600; }
+
+  /* hero + kpi */
+  .hero { display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch; margin: 26px 0 8px; }
+  .hero-card {
+    flex: 1 1 260px; background: linear-gradient(160deg, var(--surface-2), var(--surface));
+    border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px;
+    position: relative; overflow: hidden;
+  }
+  .hero-card::after {
+    content:""; position: absolute; inset: 0 0 auto 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), transparent 70%);
+  }
+  .hero-card .label { font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
+  .hero-figure { font-size: 52px; font-weight: 800; letter-spacing: -.02em; line-height: 1; color: var(--ink); }
+  .hero-figure .unit { font-size: 22px; font-weight: 700; color: var(--accent); margin-left: 6px; }
+  .hero-card .cap { font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .kpi { flex: 1 1 160px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+  .kpi .label { font-size: 12px; color: var(--ink-2); margin: 0 0 6px; }
+  .kpi .value { font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .kpi .value em { font-style: normal; color: var(--accent); }
+  .kpi .cap { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* card */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px 24px; margin-top: 20px;
+  }
+  .card h2 { font-size: 18px; margin: 0 0 4px; font-weight: 700; }
+  .card .desc { font-size: 13px; color: var(--ink-2); margin: 0 0 18px; }
+
+  /* filters */
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .filters input, .filters select {
+    font: inherit; font-size: 13px; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 8px 12px; outline: none;
+  }
+  .filters input { flex: 1 1 180px; min-width: 140px; }
+  .filters input::placeholder { color: var(--muted); }
+  .filters input:focus, .filters select:focus { border-color: var(--accent); }
+  .filters select { cursor: pointer; }
+
+  /* legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 16px; }
+  .legend .item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+  .legend .dot { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+  .legend .range { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* bars */
+  .bars { display: flex; flex-direction: column; }
+  .row {
+    display: grid; grid-template-columns: 34px 220px 1fr 56px;
+    align-items: center; gap: 12px; padding: 7px 4px;
+    border-bottom: 1px solid var(--grid); cursor: default; position: relative;
+    transition: background .15s ease;
+  }
+  .row:last-child { border-bottom: none; }
+  .row:hover { background: var(--surface-2); }
+  .row:focus { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  .rank { font-size: 13px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .meta { display: flex; flex-direction: column; min-width: 0; }
+  .name-line { display: flex; align-items: center; gap: 8px; }
+  .name-line .dot { width: 9px; height: 9px; border-radius: 2.5px; flex: none; }
+  .name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { height: 16px; background: var(--track); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px 0 0 4px; width: 0; transition: width .7s cubic-bezier(.22,.8,.28,1); }
+  .val { font-size: 15px; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+  /* tooltip (bars) */
+  .tooltip {
+    position: fixed; z-index: 60; pointer-events: none;
+    background: #1f1f24; color: var(--ink);
+    border: 1px solid var(--border); border-radius: 11px; padding: 12px 14px; max-width: 290px;
+    font-size: 13px; box-shadow: 0 12px 32px rgba(0,0,0,.5);
+    opacity: 0; transform: translateY(5px); transition: opacity .13s ease, transform .13s ease;
+  }
+  .tooltip.show { opacity: 1; transform: translateY(0); }
+  .tooltip .tt-head { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+  .tooltip .tt-real { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+  .tooltip .tt-grid { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; }
+  .tooltip .tt-grid .k { color: var(--muted); }
+  .tooltip .tt-grid .v { text-align: right; font-variant-numeric: tabular-nums; }
+  .tooltip .tt-prob { font-size: 22px; font-weight: 800; margin-top: 9px; color: var(--accent); }
+  .tooltip .tt-prob small { font-size: 12px; font-weight: 500; color: var(--muted); }
+
+  /* chart */
+  .chart-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 600; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--border);
+    padding: 5px 11px; border-radius: 999px; cursor: pointer; user-select: none;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .chip .cd { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .chip .cx { color: var(--muted); font-weight: 700; margin-left: 2px; }
+  .chip:hover { border-color: var(--accent); }
+  .chip-add {
+    border-style: dashed; color: var(--ink-2); font-weight: 600;
+  }
+  .chip-add select { background: transparent; border: none; color: inherit; font: inherit; font-size: 12.5px; cursor: pointer; outline: none; }
+  .chart-wrap { position: relative; }
+  .chart-wrap svg { display: block; width: 100%; height: auto; }
+  .chart-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .ctip {
+    position: absolute; z-index: 40; pointer-events: none; min-width: 150px;
+    background: #1f1f24; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    font-size: 12.5px; box-shadow: 0 10px 26px rgba(0,0,0,.5);
+    opacity: 0; transform: translateY(4px); transition: opacity .12s ease, transform .12s ease;
+  }
+  .ctip.show { opacity: 1; transform: translateY(0); }
+  .ctip .ch { font-weight: 700; margin-bottom: 5px; }
+  .ctip .cr { display: flex; align-items: center; gap: 7px; margin: 2px 0; }
+  .ctip .cr .cd { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .ctip .cr .cv { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .ctip .cr .est { color: var(--muted); font-weight: 400; font-size: 11px; margin-left: 3px; }
+
+  /* calculator */
+  .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 22px; }
+  .calc-item label { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+  .calc-item label b { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .calc-item input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+  .calc-foot { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .calc-badge {
+    font-size: 12px; color: var(--accent); border: 1px solid var(--accent);
+    padding: 3px 10px; border-radius: 999px; display: none;
+  }
+  .calc-badge.on { display: inline-block; }
+
+  /* buttons */
+  .btn {
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--ink); background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 9px; padding: 8px 14px;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #1a1208; border-color: var(--accent); font-weight: 700; }
+  .btn.primary:hover { background: var(--accent-2); }
+
+  /* table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--grid); }
+  th { font-weight: 600; color: var(--ink-2); font-size: 12px; cursor: pointer; user-select: none; white-space: nowrap; }
+  th:hover { color: var(--ink); }
+  th .arrow { color: var(--accent); font-size: 11px; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2.5px; margin-right: 7px; vertical-align: baseline; }
+  td .pname { font-weight: 600; }
+
+  footer { margin-top: 34px; font-size: 12px; color: var(--muted); }
+  footer h3 { font-size: 13px; color: var(--ink-2); margin: 20px 0 6px; }
+  footer ol { padding-left: 18px; margin: 0; }
+  footer li { margin: 3px 0; }
+  footer a { color: var(--muted); }
+
+  @media (max-width: 640px) {
+    .row { grid-template-columns: 26px 150px 1fr 44px; gap: 8px; }
+    .hero-figure { font-size: 42px; }
+    h1 { font-size: 25px; }
+    .calc-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="kicker">Counter-Strike 2 · HLTV Top 20</p>
+    <h1>2026 职业选手 TOP20 概率</h1>
+    <p class="subtitle">基于 2025 年度 HLTV Top20 榜单与 2026 赛季 Rating / MVP / 冠军数据的估算模型。数据截至 <b>2026-09-23</b>（赛季中期），概率为非官方预测，随赛季推进变化。</p>
+  </header>
+
+  <div class="hero">
+    <div class="hero-card">
+      <p class="label">2026 赛季最高 Rating</p>
+      <div class="hero-figure"><span id="heroRating">0.00</span><span class="unit">donk</span></div>
+      <p class="cap">Spirit · 3 MVP · 领跑 Rating 榜</p>
+    </div>
+    <div class="kpi">
+      <p class="label">ZywOo 本赛季 MVP</p>
+      <div class="value" id="kpiMvp">0</div>
+      <p class="cap">5 冠 · Rating 1.36</p>
+    </div>
+    <div class="kpi">
+      <p class="label">TOP3 锁定概率</p>
+      <div class="value"><em>99%</em></div>
+      <p class="cap">ZywOo / donk / m0NESY</p>
+    </div>
+    <div class="kpi">
+      <p class="label">追踪选手数</p>
+      <div class="value" id="kpiCount">0</div>
+      <p class="cap">含边缘与下滑选手</p>
+    </div>
+  </div>
+
+  <!-- 走势图 -->
+  <div class="card">
+    <h2>Rating 走势（2026 六大赛事）</h2>
+    <p class="desc">点击选手标签切换对比（最多 8 人）；空心点 = 估算值，实心点 = 已报道真实数据。悬停查看具体数值。</p>
+    <div class="chart-controls" id="chartControls"></div>
+    <div class="chart-wrap" id="chartWrap"></div>
+    <div class="chart-hint">注：仅 donk / ZywOo / m0NESY / sh1ro / flameZ / ropz 有公开赛事数据锚点，其余选手走势为基于赛季整体 Rating 的估算。</div>
+    <div class="ctip" id="ctip"></div>
+  </div>
+
+  <!-- 概率排名 -->
+  <div class="card">
+    <h2>入选概率排名</h2>
+    <p class="desc">颜色越亮代表概率越高；悬停或聚焦查看完整资料。</p>
+    <div class="filters">
+      <input type="search" id="q" placeholder="搜索选手 / 队伍…" aria-label="搜索">
+      <select id="fTeam" aria-label="按队伍筛选"><option value="">全部队伍</option></select>
+      <select id="fCountry" aria-label="按国家筛选"><option value="">全部国家</option></select>
+      <select id="fTier" aria-label="按梯度筛选"><option value="">全部梯度</option></select>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="bars" id="bars"></div>
+  </div>
+
+  <!-- 概率计算器 -->
+  <div class="card">
+    <h2>概率计算器</h2>
+    <p class="desc">自定义各因素权重，实时重算入选概率（探索用，非官方模型）。</p>
+    <div class="calc-grid">
+      <div class="calc-item">
+        <label>Rating <b id="wRating">40%</b></label>
+        <input type="range" id="sRating" min="0" max="100" value="40">
+      </div>
+      <div class="calc-item">
+        <label>个人 MVP <b id="wMvp">30%</b></label>
+        <input type="range" id="sMvp" min="0" max="100" value="30">
+      </div>
+      <div class="calc-item">
+        <label>队伍冠军 <b id="wTitles">20%</b></label>
+        <input type="range" id="sTitles" min="0" max="100" value="20">
+      </div>
+      <div class="calc-item">
+        <label>2025 名次 <b id="wRank">10%</b></label>
+        <input type="range" id="sRank" min="0" max="100" value="10">
+      </div>
+    </div>
+    <div class="calc-foot">
+      <button class="btn primary" id="resetCalc" type="button">恢复默认模型</button>
+      <span class="calc-badge" id="calcBadge">计算模式 · 权重已自定义</span>
+    </div>
+  </div>
+
+  <!-- 数据明细 -->
+  <div class="card">
+    <h2>数据明细</h2>
+    <p class="desc">点击表头按列排序。</p>
+    <div class="calc-foot" style="margin:0 0 14px;">
+      <button class="btn" id="exportCsv" type="button">导出 CSV</button>
+      <button class="btn" id="copyList" type="button">复制榜单</button>
+      <button class="btn" id="printBtn" type="button">打印 / 存为 PDF</button>
+    </div>
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th data-key="prob" class="num">概率 <span class="arrow">↓</span></th>
+            <th>选手</th>
+            <th>队伍</th>
+            <th>国家</th>
+            <th data-key="r2025" class="num">2025 名次</th>
+            <th data-key="rating" class="num">Rating</th>
+            <th data-key="mvp" class="num">MVP</th>
+            <th data-key="titles" class="num">冠军</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <h3>方法论</h3>
+    <p>概率为估算值：以 2025 年度 HLTV Top20 榜单为基准，结合 2026 赛季各选手的 Rating、MVP / EVP 数量、大赛冠军与队伍成绩加权得出。计算器可自定义权重。Rating 走势中仅少数选手有公开赛事数据锚点，其余为估算。本页为个人预测，非 HLTV 官方数据。</p>
+    <h3>数据来源</h3>
+    <ol>
+      <li>HLTV — Top 20 players of 2025: Final list</li>
+      <li>Liquipedia — HLTV Top 20 Players of the Year</li>
+      <li>5EPlay — BLAST 鹿特丹 2026 Rating 榜</li>
+      <li>dust2.dk — donk MVP 报道</li>
+      <li>17173 — 科隆 Major 全明星与 EVP</li>
+      <li>CyberSport — Pimp 评 2026 最强三人</li>
+      <li>虎扑 — xertioN StarLadder 专访</li>
+    </ol>
+  </footer>
+
+</div>
+
+<div class="tooltip" id="tooltip" role="tooltip"></div>
+
+<script>
+/* ============ 数据 ============ */
+const TIERS = {
+  S: { label:"锁定", range:"≥95%", color:"var(--tier-S)" },
+  A: { label:"极大概率", range:"85–94%", color:"var(--tier-A)" },
+  B: { label:"大概率", range:"70–84%", color:"var(--tier-B)" },
+  C: { label:"有望", range:"50–69%", color:"var(--tier-C)" },
+  D: { label:"边缘", range:"<50%", color:"var(--tier-D)" },
+};
+
+const EVENTS = [
+  { short:"Bounty", full:"BLAST Bounty S1" },
+  { short:"Rio", full:"IEM Rio 2026" },
+  { short:"EWC", full:"Esports World Cup" },
+  { short:"科隆", full:"IEM 科隆 Major" },
+  { short:"波尔图", full:"BLAST Open 波尔图" },
+  { short:"鹿特丹", full:"BLAST 鹿特丹" },
+];
+
+// trend: 6 个赛事 Rating；trendEst: 对应点是否估算（true=估算/空心）
+const PLAYERS = [
+  { name:"ZywOo",    real:"Mathieu Herbaut",      team:"Vitality",      country:"法国",     flag:"🇫🇷", r2025:1,  rating:1.36, mvp:4, titles:5, prob:99, tier:"S", trend:[1.56,1.42,1.30,1.42,1.22,1.47], trendEst:[0,0,1,0,0,0] },
+  { name:"donk",     real:"Danil Kryshkovets",    team:"Spirit",        country:"俄罗斯",   flag:"🇷🇺", r2025:2,  rating:1.42, mvp:3, titles:3, prob:99, tier:"S", trend:[1.76,1.40,1.50,1.34,1.40,1.61], trendEst:[0,1,0,0,0,0] },
+  { name:"m0NESY",   real:"Ilya Osipov",          team:"Falcons",       country:"俄罗斯",   flag:"🇷🇺", r2025:4,  rating:1.28, mvp:1, titles:1, prob:99, tier:"S", trend:[1.58,1.20,1.56,1.25,1.35,1.30], trendEst:[0,1,0,0,0,1] },
+  { name:"sh1ro",    real:"Dmitriy Sokolov",      team:"Spirit",        country:"俄罗斯",   flag:"🇷🇺", r2025:5,  rating:1.17, mvp:0, titles:3, prob:98, tier:"S", trend:[1.20,1.15,1.18,1.10,1.16,1.17], trendEst:[1,1,1,1,1,1] },
+  { name:"flameZ",   real:"Shahar Shushan",       team:"Vitality",      country:"以色列",   flag:"🇮🇱", r2025:7,  rating:1.16, mvp:0, titles:5, prob:96, tier:"A", trend:[1.10,1.12,1.15,1.08,1.18,1.44], trendEst:[1,1,1,1,1,0] },
+  { name:"ropz",     real:"Robin Kool",           team:"Vitality",      country:"爱沙尼亚", flag:"🇪🇪", r2025:3,  rating:1.14, mvp:0, titles:5, prob:95, tier:"A", trend:[1.08,1.10,1.12,1.05,1.14,1.32], trendEst:[1,1,1,1,1,0] },
+  { name:"NiKo",     real:"Nikola Kovač",         team:"Falcons",       country:"波黑",     flag:"🇧🇦", r2025:18, rating:1.12, mvp:0, titles:1, prob:92, tier:"A" },
+  { name:"frozen",   real:"David Čerňanský",      team:"FaZe",          country:"斯洛伐克", flag:"🇸🇰", r2025:8,  rating:1.10, mvp:0, titles:0, prob:90, tier:"A" },
+  { name:"HeavyGod", real:"Nikita Martynenko",    team:"未知",          country:"俄罗斯",   flag:"🇷🇺", r2025:null,rating:1.13, mvp:0, titles:0, prob:85, tier:"A" },
+  { name:"KSCERATO", real:"Kaike Cerato",         team:"FURIA",         country:"巴西",     flag:"🇧🇷", r2025:9,  rating:1.09, mvp:0, titles:0, prob:82, tier:"B" },
+  { name:"molodoy",  real:"Danil Golubenko",      team:"FURIA",         country:"俄罗斯",   flag:"🇷🇺", r2025:6,  rating:1.08, mvp:0, titles:0, prob:80, tier:"B" },
+  { name:"Spinx",    real:"Lotan Giladi",         team:"MOUZ",          country:"以色列",   flag:"🇮🇱", r2025:10, rating:1.07, mvp:0, titles:0, prob:78, tier:"B" },
+  { name:"Twistzz",  real:"Russel Van Dulken",    team:"Liquid",        country:"加拿大",   flag:"🇨🇦", r2025:11, rating:1.05, mvp:0, titles:0, prob:75, tier:"B" },
+  { name:"b1t",      real:"Valerij Vakhovsjkyj",  team:"NAVI",          country:"乌克兰",   flag:"🇺🇦", r2025:20, rating:1.04, mvp:0, titles:0, prob:72, tier:"B" },
+  { name:"xertioN",  real:"Dorian Berman",        team:"MOUZ",          country:"以色列",   flag:"🇮🇱", r2025:16, rating:1.03, mvp:0, titles:0, prob:68, tier:"C" },
+  { name:"mezii",    real:"William Merriman",     team:"Vitality",      country:"英国",     flag:"🇬🇧", r2025:12, rating:1.00, mvp:0, titles:5, prob:65, tier:"C" },
+  { name:"Senzu",    real:"Azbayar Munkhbold",    team:"The MongolZ",   country:"蒙古",     flag:"🇲🇳", r2025:13, rating:1.06, mvp:0, titles:0, prob:60, tier:"C" },
+  { name:"XANTARES", real:"İsmailcan Dörtkardeş", team:"Eternal Fire",  country:"土耳其",   flag:"🇹🇷", r2025:14, rating:1.05, mvp:0, titles:0, prob:55, tier:"C" },
+  { name:"torzsi",   real:"Ádám Torzsás",         team:"MOUZ",          country:"匈牙利",   flag:"🇭🇺", r2025:17, rating:1.01, mvp:0, titles:0, prob:52, tier:"C" },
+  { name:"YEKINDAR", real:"Mareks Gaļinskis",     team:"未知",          country:"拉脱维亚", flag:"🇱🇻", r2025:15, rating:0.97, mvp:0, titles:0, prob:48, tier:"D" },
+  { name:"iM",       real:"Mihai Ivan",           team:"NAVI",          country:"罗马尼亚", flag:"🇷🇴", r2025:19, rating:0.98, mvp:0, titles:0, prob:45, tier:"D" },
+  { name:"w0nderful",real:"Ihor Zhdanov",         team:"NAVI",          country:"乌克兰",   flag:"🇺🇦", r2025:null,rating:0.99, mvp:0, titles:0, prob:42, tier:"D" },
+  { name:"EliGE",    real:"Jonathan Jablonowski", team:"Complexity",    country:"美国",     flag:"🇺🇸", r2025:null,rating:1.06, mvp:0, titles:0, prob:38, tier:"D" },
+  { name:"device",   real:"Nicolai Reedtz",       team:"Astralis",      country:"丹麦",     flag:"🇩🇰", r2025:null,rating:1.00, mvp:0, titles:0, prob:35, tier:"D" },
+  { name:"s1mple",   real:"Oleksandr Kostyliev",  team:"NAVI（不活跃）", country:"乌克兰", flag:"🇺🇦", r2025:null,rating:0.95, mvp:0, titles:0, prob:25, tier:"D" },
+  { name:"Ax1Le",    real:"Sergey Rykhtorov",     team:"未知",          country:"俄罗斯",   flag:"🇷🇺", r2025:null,rating:1.00, mvp:0, titles:0, prob:32, tier:"D" },
+  { name:"jimpphat", real:"Jimi Salo",            team:"MOUZ",          country:"芬兰",     flag:"🇫🇮", r2025:null,rating:1.04, mvp:0, titles:0, prob:30, tier:"D" },
+  { name:"degster",  real:"Abdul Gasanov",        team:"未知",          country:"俄罗斯",   flag:"🇷🇺", r2025:null,rating:0.98, mvp:0, titles:0, prob:26, tier:"D" },
+  { name:"huNter-",  real:"Nemanja Kovač",        team:"未知",          country:"波黑",     flag:"🇧🇦", r2025:null,rating:0.96, mvp:0, titles:0, prob:22, tier:"D" },
+  { name:"Broky",    real:"Helvijs Saukants",     team:"FaZe（板凳）",  country:"拉脱维亚", flag:"🇱🇻", r2025:null,rating:0.92, mvp:0, titles:0, prob:18, tier:"D" },
+];
+
+/* 为无 trend 的选手生成确定性估算走势 */
+function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))>>>0; } return h; }
+function genTrend(p){
+  const h = hashStr(p.name);
+  const arr=[], est=[];
+  for(let i=0;i<6;i++){
+    const wob = 0.10*Math.sin(h*0.017 + i*1.05) + 0.05*Math.sin(h*0.007 + i*2.3);
+    arr.push(Math.round((p.rating + wob)*100)/100);
+    est.push(1);
+  }
+  return { arr, est };
+}
+PLAYERS.forEach(p => { if(!p.trend){ const g=genTrend(p); p.trend=g.arr; p.trendEst=g.est; } });
+
+/* 排序：概率降序，2025 名次升序（null 最后） */
+const byProb = (a,b) => (b.prob - a.prob) || ((a.r2025??999) - (b.r2025??999));
+
+/* ============ 工具 ============ */
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+/* ============ 计数动画 ============ */
+function countUp(el, target, decimals, suffix){
+  const dur = 900, t0 = performance.now();
+  function step(t){
+    const k = clamp((t-t0)/dur, 0, 1);
+    const e = 1 - Math.pow(1-k, 3);
+    const v = target * e;
+    el.textContent = (decimals ? v.toFixed(decimals) : Math.round(v)) + (suffix||"");
+    if(k < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ============ 图例 ============ */
+function renderLegend(){
+  const el = $("legend"); el.innerHTML = "";
+  for(const [k,t] of Object.entries(TIERS)){
+    const item = document.createElement("div"); item.className = "item";
+    const dot = document.createElement("span"); dot.className="dot"; dot.style.background=t.color;
+    const lab = document.createElement("span"); lab.textContent = `${k} · ${t.label}`;
+    const rg = document.createElement("span"); rg.className="range"; rg.textContent=t.range;
+    item.append(dot, lab, rg); el.appendChild(item);
+  }
+}
+
+/* ============ 工具栏 tooltip ============ */
+const tooltip = $("tooltip");
+function showTooltip(p, x, y){
+  tooltip.innerHTML = "";
+  const head=document.createElement("div"); head.className="tt-head"; head.textContent=`${p.flag} ${p.name}`;
+  const real=document.createElement("div"); real.className="tt-real"; real.textContent=p.real;
+  tooltip.append(head, real);
+  const grid=document.createElement("div"); grid.className="tt-grid";
+  const rows=[["队伍",p.team],["2025 名次", p.r2025??"—"],["Rating", p.rating.toFixed(2)],["MVP", p.mvp],["冠军", p.titles]];
+  for(const [k,v] of rows){
+    const kk=document.createElement("span"); kk.className="k"; kk.textContent=k;
+    const vv=document.createElement("span"); vv.className="v"; vv.textContent=v;
+    grid.append(kk,vv);
+  }
+  tooltip.appendChild(grid);
+  const prob=document.createElement("div"); prob.className="tt-prob";
+  prob.append(document.createTextNode(p.prob+"%"));
+  const small=document.createElement("small"); small.textContent=` 入选概率 · ${p.tier} ${TIERS[p.tier].label}`;
+  prob.appendChild(small);
+  tooltip.appendChild(prob);
+
+  tooltip.classList.add("show");
+  const tw=tooltip.offsetWidth, th=tooltip.offsetHeight;
+  let left=x+16, top=y+16;
+  if(left+tw>innerWidth-8) left=x-tw-16;
+  if(top+th>innerHeight-8) top=y-th-16;
+  tooltip.style.left=left+"px"; tooltip.style.top=top+"px";
+}
+const hideTooltip = () => tooltip.classList.remove("show");
+
+/* ============ 概率排名（含筛选） ============ */
+function currentList(){
+  const q=$("q").value.trim().toLowerCase();
+  const fTeam=$("fTeam").value, fCountry=$("fCountry").value, fTier=$("fTier").value;
+  return PLAYERS.filter(p => {
+    if(fTeam && p.team!==fTeam) return false;
+    if(fCountry && p.country!==fCountry) return false;
+    if(fTier && p.tier!==fTier) return false;
+    if(q && !(p.name.toLowerCase().includes(q) || p.real.toLowerCase().includes(q) || p.team.toLowerCase().includes(q))) return false;
+    return true;
+  }).sort(byProb);
+}
+
+function renderBars(){
+  const list = currentList();
+  const barsEl = $("bars"); barsEl.innerHTML = "";
+  list.forEach((p, i) => {
+    const row=document.createElement("div"); row.className="row"; row.tabIndex=0;
+
+    const rank=document.createElement("div"); rank.className="rank"; rank.textContent=i+1;
+
+    const meta=document.createElement("div"); meta.className="meta";
+    const nl=document.createElement("div"); nl.className="name-line";
+    const dot=document.createElement("span"); dot.className="dot"; dot.style.background=TIERS[p.tier].color;
+    const nm=document.createElement("span"); nm.className="name"; nm.textContent=p.name;
+    nl.append(dot,nm);
+    const sub=document.createElement("div"); sub.className="sub";
+    sub.textContent=`${p.team}${p.r2025?" · 2025 #"+p.r2025:""} · ${p.tier} ${TIERS[p.tier].label}`;
+    meta.append(nl,sub);
+
+    const track=document.createElement("div"); track.className="bar-track";
+    const fill=document.createElement("div"); fill.className="bar-fill";
+    fill.style.background=TIERS[p.tier].color;
+    track.appendChild(fill);
+
+    const val=document.createElement("div"); val.className="val"; val.textContent=p.prob+"%";
+
+    row.append(rank,meta,track,val);
+
+    row.addEventListener("mouseenter", e=>showTooltip(p,e.clientX,e.clientY));
+    row.addEventListener("mousemove", e=>showTooltip(p,e.clientX,e.clientY));
+    row.addEventListener("mouseleave", hideTooltip);
+    row.addEventListener("focus", ()=>{ row.focusT={x:0,y:0}; showTooltip(p,0,0); });
+    row.addEventListener("blur", hideTooltip);
+
+    barsEl.appendChild(row);
+
+    // 条形动画（错开）
+    requestAnimationFrame(()=>{
+      setTimeout(()=>{ fill.style.width = p.prob+"%"; }, i*22);
+    });
+  });
+}
+
+function populateFilters(){
+  const teams=[...new Set(PLAYERS.map(p=>p.team))].sort();
+  const countries=[...new Set(PLAYERS.map(p=>p.country))].sort();
+  const fill=(sel, vals)=>{ vals.forEach(v=>{ const o=document.createElement("option"); o.value=v; o.textContent=v; sel.appendChild(o); }); };
+  fill($("fTeam"), teams);
+  fill($("fCountry"), countries);
+  fill($("fTier"), Object.keys(TIERS));
+}
+["q","fTeam","fCountry","fTier"].forEach(id=> $(id).addEventListener("input", renderBars));
+
+/* ============ Rating 走势折线图 ============ */
+const LINE_COLORS = ["#ff9d3c","#3987e5","#199e70","#e66767","#9085e9","#c98500","#d55181","#d95926"];
+const MAX_LINES = 8;
+let selected = ["donk","ZywOo","m0NESY"];
+
+function playerByName(n){ return PLAYERS.find(p=>p.name===n); }
+
+function renderControls(){
+  const ctrl=$("chartControls"); ctrl.innerHTML="";
+  selected.forEach((n,i)=>{
+    const p=playerByName(n); if(!p) return;
+    const chip=document.createElement("span"); chip.className="chip";
+    const cd=document.createElement("span"); cd.className="cd"; cd.style.background=LINE_COLORS[i%MAX_LINES];
+    const t=document.createElement("span"); t.textContent=p.name;
+    const x=document.createElement("span"); x.className="cx"; x.textContent="×";
+    chip.append(cd,t,x);
+    chip.addEventListener("click", ()=>{ selected=selected.filter(s=>s!==n); renderControls(); renderChart(); });
+    ctrl.appendChild(chip);
+  });
+  if(selected.length < MAX_LINES){
+    const add=document.createElement("span"); add.className="chip chip-add";
+    const sel=document.createElement("select"); sel.setAttribute("aria-label","添加选手");
+    const opt=document.createElement("option"); opt.value=""; opt.textContent="＋ 添加选手"; sel.appendChild(opt);
+    PLAYERS.filter(p=>!selected.includes(p.name)).sort((a,b)=>b.prob-a.prob).forEach(p=>{
+      const o=document.createElement("option"); o.value=p.name; o.textContent=`${p.flag} ${p.name}`;
+      sel.appendChild(o);
+    });
+    sel.addEventListener("change", ()=>{ if(sel.value){ selected.push(sel.value); renderControls(); renderChart(); } });
+    add.appendChild(sel);
+    ctrl.appendChild(add);
+  } else {
+    const cap=document.createElement("span"); cap.className="chart-hint"; cap.textContent="已达 8 人上限";
+    ctrl.appendChild(cap);
+  }
+}
+
+function renderChart(){
+  const W=760, H=300, padL=46, padR=16, padT=16, padB=42;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const yMin=0.90, yMax=1.80;
+  const xFor=i=>padL + i*(plotW/5);
+  const yFor=v=>padT + (yMax-v)/(yMax-yMin)*plotH;
+
+  const wrap=$("chartWrap"); wrap.innerHTML="";
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  svg.setAttribute("role","img"); svg.setAttribute("aria-label","Rating 走势折线图");
+
+  // 网格 + y 轴刻度
+  const ticks=[1.0,1.2,1.4,1.6];
+  ticks.forEach(v=>{
+    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1",padL); line.setAttribute("x2",W-padR);
+    line.setAttribute("y1",yFor(v)); line.setAttribute("y2",yFor(v));
+    line.setAttribute("stroke","#2c2c32"); line.setAttribute("stroke-width","1");
+    svg.appendChild(line);
+    const t=document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x",padL-8); t.setAttribute("y",yFor(v)+4);
+    t.setAttribute("text-anchor","end"); t.setAttribute("font-size","11"); t.setAttribute("fill","#7a7a84");
+    t.textContent=v.toFixed(1);
+    svg.appendChild(t);
+  });
+  // x 轴标签
+  EVENTS.forEach((e,i)=>{
+    const t=document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x",xFor(i)); t.setAttribute("y",H-padB+22);
+    t.setAttribute("text-anchor","middle"); t.setAttribute("font-size","11.5"); t.setAttribute("fill","#a6a6af");
+    t.textContent=e.short;
+    svg.appendChild(t);
+  });
+
+  // 线 + 点
+  selected.forEach((n,si)=>{
+    const p=playerByName(n); if(!p) return;
+    const c=LINE_COLORS[si%MAX_LINES];
+    const coords=p.trend.map((v,i)=>({x:xFor(i), y:yFor(v)}));
+    const pts=coords.map(pt=>`${pt.x},${pt.y}`).join(" ");
+    const poly=document.createElementNS("http://www.w3.org/2000/svg","polyline");
+    poly.setAttribute("points",pts);
+    poly.setAttribute("fill","none"); poly.setAttribute("stroke",c); poly.setAttribute("stroke-width","2");
+    poly.setAttribute("stroke-linejoin","round"); poly.setAttribute("stroke-linecap","round");
+    svg.appendChild(poly);
+    // 绘制动画：用坐标手动算长度（getTotalLength 在未挂载时可能返回 0，导致线条不可见）
+    let len=0;
+    for(let i=1;i<coords.length;i++){ len += Math.hypot(coords[i].x-coords[i-1].x, coords[i].y-coords[i-1].y); }
+    if(len>0){
+      poly.style.strokeDasharray=len; poly.style.strokeDashoffset=len;
+      poly.style.transition="stroke-dashoffset .8s ease";
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{ poly.style.strokeDashoffset=0; }));
+      setTimeout(()=>{ poly.style.strokeDashoffset=0; }, 900); // 兜底，确保线条一定显示
+    }
+
+    p.trend.forEach((v,i)=>{
+      const cir=document.createElementNS("http://www.w3.org/2000/svg","circle");
+      cir.setAttribute("cx",xFor(i)); cir.setAttribute("cy",yFor(v)); cir.setAttribute("r","4");
+      cir.setAttribute("stroke", p.trendEst[i]?c:"#141417");
+      cir.setAttribute("stroke-width","2");
+      cir.setAttribute("fill", p.trendEst[i]?"#141417":c);
+      svg.appendChild(cir);
+    });
+  });
+
+  // 十字线交互
+  const overlay=document.createElementNS("http://www.w3.org/2000/svg","rect");
+  overlay.setAttribute("x",padL); overlay.setAttribute("y",padT);
+  overlay.setAttribute("width",plotW); overlay.setAttribute("height",plotH);
+  overlay.setAttribute("fill","transparent");
+  const vline=document.createElementNS("http://www.w3.org/2000/svg","line");
+  vline.setAttribute("y1",padT); vline.setAttribute("y2",padT+plotH);
+  vline.setAttribute("stroke","#4a4a52"); vline.setAttribute("stroke-width","1"); vline.setAttribute("stroke-dasharray","3 3");
+  vline.style.opacity=0; vline.style.transition="opacity .1s";
+  svg.appendChild(vline);
+  svg.appendChild(overlay);
+
+  const ctip=$("ctip");
+  function onMove(ev){
+    const rect=svg.getBoundingClientRect();
+    const mx=(ev.clientX-rect.left)/rect.width*W;
+    const i=clamp(Math.round((mx-padL)/(plotW/5)),0,5);
+    const cx=xFor(i);
+    vline.setAttribute("x1",cx); vline.setAttribute("x2",cx); vline.style.opacity=1;
+    // tooltip
+    ctip.innerHTML="";
+    const ch=document.createElement("div"); ch.className="ch"; ch.textContent=EVENTS[i].full;
+    ctip.appendChild(ch);
+    selected.forEach((n,si)=>{
+      const p=playerByName(n); if(!p) return;
+      const c=LINE_COLORS[si%MAX_LINES];
+      const r=document.createElement("div"); r.className="cr";
+      const cd=document.createElement("span"); cd.className="cd"; cd.style.background=c;
+      const nm=document.createElement("span"); nm.textContent=p.name;
+      const cv=document.createElement("span"); cv.className="cv"; cv.textContent=p.trend[i].toFixed(2);
+      if(p.trendEst[i]){ const est=document.createElement("span"); est.className="est"; est.textContent="估"; cv.appendChild(est); }
+      r.append(cd,nm,cv); ctip.appendChild(r);
+    });
+    ctip.classList.add("show");
+    let left=ev.clientX-rect.left+14, top=ev.clientY-rect.top+14;
+    const bw=wrap.clientWidth, bh=300;
+    if(left+170>rect.width) left=ev.clientX-rect.left-160;
+    if(top+ctip.offsetHeight>bh) top=ev.clientY-rect.top-ctip.offsetHeight-12;
+    ctip.style.left=left+"px"; ctip.style.top=top+"px";
+  }
+  overlay.addEventListener("mousemove", onMove);
+  overlay.addEventListener("mouseleave", ()=>{ vline.style.opacity=0; ctip.classList.remove("show"); });
+
+  wrap.appendChild(svg);
+}
+
+/* ============ 概率计算器 ============ */
+const calcState={ rating:40, mvp:30, titles:20, rank:10, active:false };
+function calcProb(p, w){
+  const ratingN = clamp((p.rating-0.90)/(1.42-0.90)*100, 0, 100);
+  const mvpN = clamp(p.mvp/4*100, 0, 100);
+  const titlesN = clamp(p.titles/5*100, 0, 100);
+  const rankN = p.r2025 ? clamp((21-p.r2025)/20*100,0,100) : 0;
+  const score = w.rating*ratingN + w.mvp*mvpN + w.titles*titlesN + w.rank*rankN;
+  return Math.round(clamp(99*Math.pow(score/100, 1.4), 1, 99));
+}
+function applyWeights(){
+  const r=+$("sRating").value, m=+$("sMvp").value, t=+$("sTitles").value, k=+$("sRank").value;
+  calcState.rating=r; calcState.mvp=m; calcState.titles=t; calcState.rank=k;
+  const sum=(r+m+t+k)||1;
+  const w={rating:r/sum, mvp:m/sum, titles:t/sum, rank:k/sum};
+  $("wRating").textContent=Math.round(w.rating*100)+"%";
+  $("wMvp").textContent=Math.round(w.mvp*100)+"%";
+  $("wTitles").textContent=Math.round(w.titles*100)+"%";
+  $("wRank").textContent=Math.round(w.rank*100)+"%";
+
+  const changed = r!==40 || m!==30 || t!==20 || k!==10;
+  calcState.active = changed;
+  $("calcBadge").classList.toggle("on", changed);
+
+  if(changed){
+    PLAYERS.forEach(p=>{ p.prob = calcProb(p, w); });
+    PLAYERS.forEach(p=>{ p.tier = p.prob>=95?"S":p.prob>=85?"A":p.prob>=70?"B":p.prob>=50?"C":"D"; });
+  } else {
+    PLAYERS.forEach(p=>{ p.prob = p.baseProb; p.tier = p.baseTier; });
+  }
+  renderBars();
+  renderTable(PLAYERS.slice().sort(byProb), state.sortKey, state.sortDir);
+}
+function resetCalc(){
+  $("sRating").value=40; $("sMvp").value=30; $("sTitles").value=20; $("sRank").value=10;
+  applyWeights();
+}
+["sRating","sMvp","sTitles","sRank"].forEach(id=> $(id).addEventListener("input", applyWeights));
+$("resetCalc").addEventListener("click", resetCalc);
+
+/* ============ 表格 ============ */
+const state={ sortKey:"prob", sortDir:-1 };
+function renderTable(list, key, dir){
+  key=key||state.sortKey; dir=dir||state.sortDir;
+  const arr=list.slice().sort((a,b)=>{
+    let av=a[key], bv=b[key];
+    if(key==="r2025"){ av=av??999; bv=bv??999; }
+    return (av<bv?-1:av>bv?1:0)*dir;
+  });
+  const tb=$("tbody"); tb.innerHTML="";
+  arr.forEach(p=>{
+    const tr=document.createElement("tr");
+    const tdP=document.createElement("td"); tdP.className="num";
+    const d=document.createElement("span"); d.className="dot"; d.style.background=TIERS[p.tier].color;
+    tdP.append(d, document.createTextNode(p.prob+"%"));
+    const tdN=document.createElement("td"); const pn=document.createElement("span"); pn.className="pname"; pn.textContent=p.name;
+    tdN.append(document.createTextNode(p.flag+" "), pn);
+    const tdT=document.createElement("td"); tdT.textContent=p.team;
+    const tdC=document.createElement("td"); tdC.textContent=p.country;
+    const tdR=document.createElement("td"); tdR.className="num"; tdR.textContent=p.r2025??"—";
+    const tdRt=document.createElement("td"); tdRt.className="num"; tdRt.textContent=p.rating.toFixed(2);
+    const tdM=document.createElement("td"); tdM.className="num"; tdM.textContent=p.mvp;
+    const tdTi=document.createElement("td"); tdTi.className="num"; tdTi.textContent=p.titles;
+    tr.append(tdP,tdN,tdT,tdC,tdR,tdRt,tdM,tdTi);
+    tb.appendChild(tr);
+  });
+}
+document.querySelectorAll("#tbl th[data-key]").forEach(th=>{
+  th.addEventListener("click", ()=>{
+    const key=th.dataset.key;
+    if(state.sortKey===key) state.sortDir*=-1; else { state.sortKey=key; state.sortDir=-1; }
+    document.querySelectorAll("#tbl th .arrow").forEach(a=>a.textContent="");
+    th.querySelector(".arrow").textContent = state.sortDir===-1?"↓":"↑";
+    renderTable(PLAYERS, state.sortKey, state.sortDir);
+  });
+});
+
+/* ============ 数据导出 ============ */
+function csvCell(v){ v=String(v??""); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+$("exportCsv").addEventListener("click", ()=>{
+  const head=["排名","选手","真名","队伍","国家","2025名次","Rating","MVP","冠军","概率","梯度"];
+  const rows=[head.join(",")];
+  PLAYERS.slice().sort(byProb).forEach((p,i)=>{
+    rows.push([i+1,p.name,p.real,p.team,p.country,p.r2025??"",p.rating.toFixed(2),p.mvp,p.titles,p.prob+"%",p.tier].map(csvCell).join(","));
+  });
+  const blob=new Blob(["﻿"+rows.join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="cs2-top20-2026.csv"; a.click(); URL.revokeObjectURL(a.href);
+});
+$("copyList").addEventListener("click", async ()=>{
+  const txt=PLAYERS.slice().sort(byProb).map((p,i)=>`${String(i+1).padStart(2)}. ${p.name} — ${p.prob}%（${p.tier} ${TIERS[p.tier].label}）`).join("\n");
+  try{ await navigator.clipboard.writeText(txt); }catch(e){}
+  const btn=$("copyList"); const old=btn.textContent; btn.textContent="已复制 ✓"; setTimeout(()=>btn.textContent=old,1200);
+});
+$("printBtn").addEventListener("click", ()=>window.print());
+
+/* ============ 初始化 ============ */
+// 备份默认模型
+PLAYERS.forEach(p=>{ p.baseProb=p.prob; p.baseTier=p.tier; });
+
+renderLegend();
+populateFilters();
+renderBars();
+renderTable(PLAYERS.slice().sort(byProb));
+renderControls();
+renderChart();
+
+countUp($("heroRating"), 1.42, 2);
+countUp($("kpiMvp"), 4, 0);
+countUp($("kpiCount"), PLAYERS.length, 0);
+</script>
+</body>
+</html>
